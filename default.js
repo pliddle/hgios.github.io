@@ -151,8 +151,22 @@ window.HGIOS_SAVED_DATA = {
     "3.2.4.3": {
       "level": 6,
       "status": "secure"
+    },
+    "3.2.1.1": {
+      "level": 6,
+      "status": "secure"
+    },
+    "3.2.1.2": {
+      "level": 6,
+      "status": "secure"
+    },
+    "3.2.1.3": {
+      "level": 6,
+      "status": "secure"
     }
   },
-  "comments": {},
-  "timestamp": "2025-11-22T14:45:45.120Z"
+  "comments": {
+    "2.3.1.1": "Rights respecting schools evidence.\n"
+  },
+  "timestamp": "2025-11-22T15:36:01.858Z"
 };

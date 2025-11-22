@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Secondary School Framework (Sector-Leading Benchmarks)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    @media print {
+      body { margin: 0; padding: 0; }
+      .no-print { display: none !important; }
+      .print-full { width: 100vw; height: 100vh; overflow: visible; }
+      #dashboard { padding: 20px; }
+      canvas { max-height: 60vh !important; }
+    }
+    .cell { cursor: pointer; min-height: 60px; }
+    .green { background-color: #d1fae5; }
+    .orange { background-color: #fed7aa; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+<div class="min-h-screen flex flex-col">
+  <!-- Header -->
+  <header class="bg-slate-800 text-white p-4 no-print">
+    <div class="max-w-7xl mx-auto flex justify-between items-center">
+      <h1 class="text-2xl font-bold">Secondary School Framework (Sector-Leading Benchmarks)</h1>
+      <div class="space-x-4">
+        <button id="toggleDashboard" class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded">Dashboard Mode</button>
+        <button id="saveJson" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">Save JSON</button>
+        <button id="loadJsonBtn" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">Load JSON</button>
+        <input type="file" id="loadJsonInput" accept=".json" class="hidden">
+        <button id="reset" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded">Reset</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <div class="flex flex-1 overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-slate-700 text-white p-4 overflow-y-auto no-print">
+      <h2 class="text-xl font-semibold mb-4">Quality Indicators</h2>
+      <ul class="space-y-2">
+        <li><a href="#qi1.3" class="block hover:bg-slate-600 p-2 rounded">1.3 Leadership of Change</a></li>
+        <li><a href="#qi2.2" class="block hover:bg-slate-600 p-2 rounded">2.2 Curriculum</a></li>
+        <li><a href="#qi2.3" class="block hover:bg-slate-600 p-2 rounded">2.3 Learning, Teaching & Assessment</a></li>
+        <li><a href="#qi3.1" class="block hover:bg-slate-600 p-2 rounded">3.1 Ensuring Wellbeing, Equality & Inclusion</a></li>
+        <li><a href="#qi3.2" class="block hover:bg-slate-600 p-2 rounded">3.2 Raising Attainment & Achievement</a></li>
+      </ul>
+    </aside>
+
+    <!-- Edit View -->
+    <main id="editView" class="flex-1 p-8 overflow-y-auto">
+      <div class="max-w-5xl mx-auto space-y-12">
+
+        <!-- QI 1.3 Leadership of Change -->
+        <section id="qi1.3">
+          <h2 class="text-3xl font-bold text-purple-700 mb-6">1.3 Leadership of Change</h2>
+          <table class="w-full table-auto border-collapse border border-gray-300">
+            <thead>
+              <tr class="bg-gray-200">
+                <th class="border border-gray-300 p-3 text-left w-1/3">Focus Area</th>
+                <th class="border border-gray-300 p-3 bg-amber-100">Level 4 (Good)</th>
+                <th class="border border-gray-300 p-3 bg-blue-100">Level 5 (Very Good)</th>
+                <th class="border border-gray-300 p-3 bg-purple-100">Level 6 (Excellent - Sector-Leading)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr data-row="1.3-1">
+                <td class="border p-3 font-medium">Vision, values and aims</td>
+                <td class="cell border p-3">Staff understand the vision and lead change effectively in most areas</td>
+                <td class="cell border p-3">Staff and partners are empowered by a clear and shared vision, values and aims</td>
+                <td class="cell border p-3">A unifying vision acts as a driving force; staff demonstrate an exemplary culture of professional enquiry and ambition</td>
+              </tr>
+              <tr data-row="1.3-2">
+                <td class="border p-3 font-medium">Leadership of change & improvement</td>
+                <td class="cell border p-3">Leaders identify and implement change effectively in most contexts</td>
+                <td class="cell border p-3">Leaders at all levels develop and sustain a culture of change based on collaboration and shared responsibility</td>
+                <td class="cell border p-3">Distributed leadership is highly developed; staff lead innovation with creativity, confidence and rigour</td>
+              </tr>
+              <tr data-row="1.3-3">
+                <td class="border p-3 font-medium">Staff ownership & pace of change</td>
+                <td class="cell border p-3">Most staff are committed to change that improves outcomes</td>
+                <td class="cell border p-3">Almost all staff are fully committed to change and demonstrate ownership</td>
+                <td class="cell border p-3">Staff drive change at a relentless yet sustainable pace, fully owning improvements</td>
+              </tr>
+              <tr data-row="1.3-4">
+                <td class="border p-3 font-medium">Comments</td>
+                <td colspan="3" class="border p-3"><textarea class="w-full" data-comment="1.3"></textarea></td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- QI 2.2 Curriculum -->
+        <section id="qi2.2">
+          <h2 class="text-3xl font-bold text-purple-700 mb-6">2.2 Curriculum</h2>
+          <table class="w-full table-auto border-collapse border border-gray-300">
+            <thead>
+              <tr class="bg-gray-200">
+                <th class="border border-gray-300 p-3 text-left w-1/3">Focus Area</th>
+                <th class="border border-gray-300 p-3 bg-amber-100">Level 4 (Good)</th>
+                <th class="border border-gray-300 p-3 bg-blue-100">Level 5 (Very Good)</th>
+                <th class="border border-gray-300 p-3 bg-purple-100">Level 6 (Excellent - Sector-Leading)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr data-row="2.2-1">
+                <td class="border p-3 font-medium">Rationale and design</td>
+                <td class="cell border p-3">The curriculum rationale is clear and provides relevant experiences</td>
+                <td class="cell border p-3">The curriculum is based on a clear, shared rationale reflecting local and national priorities</td>
+                <td class="cell border p-3">The rationale is inspirational and drives innovative, coherent design across all areas</td>
+              </tr>
+              <tr data-row="2.2-2">
+                <td class="border p-3 font-medium">Development of the curriculum</td>
+                <td class="cell border p-3">Curriculum pathways meet most learners' needs</td>
+                <td class="cell border p-3">The curriculum provides coherent progression and relevant experiences for all learners</td>
+                <td class="cell border p-3">Curriculum pathways are highly personalised, flexible and continually refined through collaborative review</td>
+              </tr>
+              <tr data-row="2.2-3">
+                <td class="border p-3 font-medium">Skills for learning, life & work</td>
+                <td class="cell border p-3">Opportunities to develop skills are planned in most areas</td>
+                <td class="cell border p-3">Almost all learners develop a wide range of skills systematically across the curriculum</td>
+                <td class="cell border p-3">Skills development is embedded and leads to sector-leading outcomes in employability and positive destinations</td>
+              </tr>
+              <tr data-row="2.2-4">
+                <td class="border p-3 font-medium">Comments</td>
+                <td colspan="3" class="border p-3"><textarea class="w-full" data-comment="2.2"></textarea></td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- QI 2.3 Learning, Teaching & Assessment (expanded) -->
+        <section id="qi2.3">
+          <h2 class="text-3xl font-bold text-purple-700 mb-6">2.3 Learning, Teaching & Assessment</h2>
+          <table class="w-full table-auto border-collapse border border-gray-300">
+            <thead>
+              <tr class="bg-gray-200">
+                <th class="border border-gray-300 p-3 text-left w-1/3">Focus Area</th>
+                <th class="border border-gray-300 p-3 bg-amber-100">Level 4 (Good)</th>
+                <th class="border border-gray-300 p-3 bg-blue-100">Level 5 (Very Good)</th>
+                <th class="border border-gray-300 p-3 bg-purple-100">Level 6 (Excellent - Sector-Leading)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr data-row="2.3-1">
+                <td class="border p-3 font-medium">General pedagogy & engagement</td>
+                <td class="cell border p-3">Learners are engaged and active in most lessons</td>
+                <td class="cell border p-3">Learners are motivated, engaged and actively contribute to a positive learning environment</td>
+                <td class="cell border p-3">Learners are empowered partners in learning; relationships and interactions are exemplary</td>
+              </tr>
+              <tr data-row="2.3-2">
+                <td class="border p-3 font-medium">Digital technology</td>
+                <td class="cell border p-3">Digital technology is used effectively in most learning</td>
+                <td class="cell border p-3">Digital technology enhances learning and teaching across the curriculum</td>
+                <td class="cell border p-3">Digital pedagogy is innovative and transformative, fully embedding technology as a tool for excellence</td>
+              </tr>
+              <tr data-row="2.3-3">
+                <td class="border p-3 font-medium">Differentiation & pace/challenge</td>
+                <td class="cell border p-3">Learning experiences are differentiated for most learners</td>
+                <td class="cell border p-3">Almost all learners experience appropriate pace, challenge and support</td>
+                <td class="cell border p-3">Pace and challenge are precisely matched; forensic differentiation leads to exceptional progress</td>
+              </tr>
+              <tr data-row="2.3-4">
+                <td class="border p-3 font-medium">Assessment & feedback</td>
+                <td class="cell border p-3">Assessment evidence is used to improve learning in most cases</td>
+                <td class="cell border p-3">High-quality assessment and moderation lead to reliable data and effective interventions</td>
+                <td class="cell border p-3">Assessment is highly sophisticated; feedback drives rapid, sustained improvement</td>
+              </tr>
+              <tr data-row="2.3-5">
+                <td class="border p-3 font-medium">Comments</td>
+                <td colspan="3" class="border p-3"><textarea class="w-full" data-comment="2.3"></textarea></td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- QI 3.1 Ensuring Wellbeing, Equality & Inclusion -->
+        <section id="qi3.1">
+          <h2 class="text-3xl font-bold text-purple-700 mb-6">3.1 Ensuring Wellbeing, Equality & Inclusion</h2>
+          <table class="w-full table-auto border-collapse border border-gray-300">
+            <thead>
+              <tr class="bg-gray-200">
+                <th class="border border-gray-300 p-3 text-left w-1/3">Focus Area</th>
+                <th class="border border-gray-300 p-3 bg-amber-100">Level 4 (Good)</th>
+                <th class="border border-gray-300 p-3 bg-blue-100">Level 5 (Very Good)</th>
+                <th class="border border-gray-300 p-3 bg-purple-100">Level 6 (Excellent - Sector-Leading)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr data-row="3.1-1">
+                <td class="border p-3 font-medium">Wellbeing & relationships</td>
+                <td class="cell border p-3">The school promotes positive relationships and wellbeing effectively</td>
+                <td class="cell border p-3">The school has a nurturing climate where children feel safe, healthy, achieving, nurtured, active, respected, responsible and included</td>
+                <td class="cell border p-3">Wellbeing is sector-leading; relationships are universally positive and transformative</td>
+              </tr>
+              <tr data-row="3.1-2">
+                <td class="border p-3 font-medium">Inclusion & equality</td>
+                <td class="cell border p-3">Barriers to learning are identified and addressed for most learners</td>
+                <td class="cell border p-3">Almost all learners benefit from inclusive approaches that remove barriers</td>
+                <td class="cell border p-3">Inclusion is embedded; equality outcomes are exemplary and impact positively on all</td>
+              </tr>
+              <tr data-row="3.1-3">
+                <td class="border p-3 font-medium">Rights & participation</td>
+                <td class="cell border p-3">Learners' rights are respected and they participate in decisions</td>
+                <td class="cell border p-3">Learners' rights are central; they are active participants in school life</td>
+                <td class="cell border p-3">Learners lead on rights-based approaches; participation is highly influential</td>
+              </tr>
+              <tr data-row="3.1-4">
+                <td class="border p-3 font-medium">Comments</td>
+                <td colspan="3" class="border p-3"><textarea class="w-full" data-comment="3.1"></textarea></td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- QI 3.2 Raising Attainment & Achievement (expanded) -->
+        <section id="qi3.2">
+          <h2 class="text-3xl font-bold text-purple-700 mb-6">3.2 Raising Attainment & Achievement</h2>
+          <table class="w-full table-auto border-collapse border border-gray-300">
+            <thead>
+              <tr class="bg-gray-200">
+                <th class="border border-gray-300 p-3 text-left w-1/3">Focus Area</th>
+                <th class="border border-gray-300 p-3 bg-amber-100">Level 4 (Good)</th>
+                <th class="border border-gray-300 p-3 bg-blue-100">Level 5 (Very Good)</th>
+                <th class="border border-gray-300 p-3 bg-purple-100">Level 6 (Excellent - Sector-Leading)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr data-row="3.2-1">
+                <td class="border p-3 font-medium">Attainment over time (overall)</td>
+                <td class="cell border p-3">Attainment is good and improving in most measures</td>
+                <td class="cell border p-3">Attainment is strong and improving over time across almost all measures</td>
+                <td class="cell border p-3">Attainment is sector-leading with sustained excellence across all measures</td>
+              </tr>
+              <tr data-row="3.2-2">
+                <td class="border p-3 font-medium">Closing the poverty-related gap (SIMD)</td>
+                <td class="cell border p-3">The gap is narrowing in most areas</td>
+                <td class="cell border p-3">The poverty-related attainment gap is closing consistently</td>
+                <td class="cell border p-3">The gap is minimal or eliminated through highly effective, targeted interventions</td>
+              </tr>
+              <tr data-row="3.2-3">
+                <td class="border p-3 font-medium">Care experienced / ASN learners</td>
+                <td class="cell border p-3">Attainment for vulnerable groups is improving</td>
+                <td class="cell border p-3">Almost all vulnerable learners achieve positive outcomes</td>
+                <td class="cell border p-3">Outcomes for care-experienced and ASN learners are exemplary and sector-leading</td>
+              </tr>
+              <tr data-row="3.2-4">
+                <td class="border p-3 font-medium">Wider achievement & positive destinations</td>
+                <td class="cell border p-3">Most learners achieve wider awards and sustain positive destinations</td>
+                <td class="cell border p-3">Almost all learners are successful in wider achievement and positive, sustained destinations</td>
+                <td class="cell border p-3">Wider achievement is exceptional; leaver destinations are amongst the very best nationally</td>
+              </tr>
+              <tr data-row="3.2-5">
+                <td class="border p-3 font-medium">Comments</td>
+                <td colspan="3" class="border p-3"><textarea class="w-full" data-comment="3.2"></textarea></td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+      </div>
+    </main>
+
+    <!-- Dashboard View -->
+    <div id="dashboard" class="hidden flex-1 bg-white p-10 print-full">
+      <h1 class="text-4xl font-bold text-center mb-10">Self-Evaluation Dashboard</h1>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+        <div id="card-1.3" class="border-4 rounded-xl p-8 text-center shadow-lg">
+          <h3 class="text-2xl font-bold">1.3 Leadership of Change</h3>
+          <p class="text-6xl font-bold mt-4" id="score-1.3">0%</p>
+          <p class="text-lg mt-2" id="progress-1.3">0 of 3 areas evidenced</p>
+        </div>
+        <div id="card-2.2" class="border-4 rounded-xl p-8 text-center shadow-lg">
+          <h3 class="text-2xl font-bold">2.2 Curriculum</h3>
+          <p class="text-6xl font-bold mt-4" id="score-2.2">0%</p>
+          <p class="text-lg mt-2" id="progress-2.2">0 of 3 areas evidenced</p>
+        </div>
+        <div id="card-2.3" class="border-4 rounded-xl p-8 text-center shadow-lg">
+          <h3 class="text-2xl font-bold">2.3 Learning, Teaching & Assessment</h3>
+          <p class="text-6xl font-bold mt-4" id="score-2.3">0%</p>
+          <p class="text-lg mt-2" id="progress-2.3">0 of 4 areas evidenced</p>
+        </div>
+        <div id="card-3.1" class="border-4 rounded-xl p-8 text-center shadow-lg">
+          <h3 class="text-2xl font-bold">3.1 Wellbeing, Equality & Inclusion</h3>
+          <p class="text-6xl font-bold mt-4" id="score-3.1">0%</p>
+          <p class="text-lg mt-2" id="progress-3.1">0 of 3 areas evidenced</p>
+        </div>
+        <div id="card-3.2" class="border-4 rounded-xl p-8 text-center shadow-lg">
+          <h3 class="text-2xl font-bold">3.2 Raising Attainment & Achievement</h3>
+          <p class="text-6xl font-bold mt-4" id="score-3.2">0%</p>
+          <p class="text-lg mt-2" id="progress-3.2">0 of 4 areas evidenced</p>
+        </div>
+      </div>
+
+      <div class="mt-20">
+        <canvas id="radarChart" height="320"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const qis = ['1.3', '2.2', '2.3', '3.1', '3.2'];
+  const rowCounts = { '1.3': 3, '2.2': 3, '2.3': 4, '3.1': 3, '3.2': 4 };
+  let chart;
+
+  function saveData() {
+    const data = {};
+    document.querySelectorAll('.cell').forEach(cell => {
+      const row = cell.parentElement.getAttribute('data-row');
+      data[row] = cell.classList.contains('green') ? 'green' : cell.classList.contains('orange') ? 'orange' : '';
+    });
+    document.querySelectorAll('textarea[data-comment]').forEach(ta => {
+      data[ta.dataset.comment] = ta.value;
+    });
+    localStorage.setItem('hgiosData', JSON.stringify(data));
+  }
+
+  function loadData() {
+    const saved = localStorage.getItem('hgiosData');
+    if (!saved) return;
+    const data = JSON.parse(saved);
+    document.querySelectorAll('.cell').forEach(cell => {
+      const row = cell.parentElement.getAttribute('data-row');
+      cell.classList.remove('green', 'orange');
+      if (data[row] === 'green') cell.classList.add('green');
+      if (data[row] === 'orange') cell.classList.add('orange');
+    });
+    document.querySelectorAll('textarea[data-comment]').forEach(ta => {
+      ta.value = data[ta.dataset.comment] || '';
+    });
+    updateDashboard();
+  }
+
+  function updateDashboard() {
+    let radarData = [];
+    qis.forEach(qi => {
+      let green = 0, orange = 0, total = rowCounts[qi];
+      document.querySelectorAll(`tr[data-row^="${qi}-"] .cell`).forEach(cell => {
+        if (cell.classList.contains('green')) green++;
+        if (cell.classList.contains('orange')) orange++;
+      });
+      const evidenced = green + orange;
+      const avg = total > 0 ? ((green * 2 + orange) / (total * 2)) * 100 : 0;
+      document.getElementById(`progress-\( {qi}`).textContent = ` \){evidenced} of ${total} areas evidenced`;
+      document.getElementById(`score-${qi}`).textContent = Math.round(avg) + '%';
+
+      const card = document.getElementById(`card-${qi}`);
+      card.className = 'border-4 rounded-xl p-8 text-center shadow-lg';
+      if (avg >= 90) {
+        card.classList.add('border-purple-600', 'bg-purple-50');
+      } else if (avg >= 70) {
+        card.classList.add('border-blue-600', 'bg-blue-50');
+      } else if (avg >= 50) {
+        card.classList.add('border-amber-600', 'bg-amber-50');
+      } else {
+        card.classList.add('border-gray-400', 'bg-gray-100');
+      }
+      radarData.push(avg);
+    });
+
+    if (chart) chart.destroy();
+    const ctx = document.getElementById('radarChart').getContext('2d');
+    chart = new Chart(ctx, {
+      type: 'radar',
+      data: {
+        labels: ['1.3 Leadership of Change', '2.2 Curriculum', '2.3 Learning, Teaching & Assessment', '3.1 Wellbeing', '3.2 Attainment'],
+        datasets: [{
+          label: 'Performance % (towards Excellent)',
+          data: radarData,
+          backgroundColor: 'rgba(147, 51, 234, 0.2)',
+          borderColor: '#9333ea',
+          pointBackgroundColor: '#9333ea',
+          borderWidth: 3
+        }]
+      },
+      options: {
+        maintainAspectRatio: false,
+        scales: {
+          r: {
+            min: 0,
+            max: 100,
+            ticks: { stepSize: 20 }
+          }
+        }
+      }
+    });
+  }
+
+  document.querySelectorAll('.cell').forEach(cell => {
+    cell.addEventListener('click', () => {
+      cell.classList.remove('green', 'orange');
+      if (!cell.classList.contains('green') && !cell.classList.contains('orange')) {
+        cell.classList.add('green');
+      } else if (cell.classList.contains('green')) {
+        cell.classList.remove('green');
+        cell.classList.add('orange');
+      }
+      saveData();
+      updateDashboard();
+    });
+  });
+
+  document.querySelectorAll('textarea').forEach(ta => {
+    ta.addEventListener('input', () => { saveData(); });
+  });
+
+  document.getElementById('toggleDashboard').addEventListener('click', () => {
+    const edit = document.getElementById('editView');
+    const dash = document.getElementById('dashboard');
+    edit.classList.toggle('hidden');
+    dash.classList.toggle('hidden');
+    document.querySelector('header').classList.toggle('no-print');
+    document.querySelector('aside').classList.toggle('no-print');
+    if (!dash.classList.contains('hidden')) updateDashboard();
+  });
+
+  document.getElementById('saveJson').addEventListener('click', () => {
+    const data = localStorage.getItem('hgiosData') || '{}';
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Self-Evaluation-' + new Date().toISOString().slice(0,10) + '.json';
+    a.click();
+  });
+
+  document.getElementById('loadJsonBtn').addEventListener('click', () => {
+    document.getElementById('loadJsonInput').click();
+  });
+
+  document.getElementById('loadJsonInput').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        localStorage.setItem('hgiosData', ev.target.result);
+        loadData();
+      };
+      reader.readAsText(file);
+    }
+  });
+
+  document.getElementById('reset').addEventListener('click', () => {
+    if (confirm('Clear all ratings and comments?')) {
+      localStorage.removeItem('hgiosData');
+      location.reload();
+    }
+  });
+
+  loadData();
+</script>
+</body>
+</html>

@@ -7,6 +7,16 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    
+    <!-- 
+      AUTO-LOAD MECHANISM:
+      The tool attempts to load 'default.js' from the same directory.
+      If found, it sets window.HGIOS_SAVED_DATA.
+      If not found, this script tag fails silently (check console for 404), 
+      and the app falls back to localStorage.
+    -->
+    <script src="default.js"></script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
@@ -72,7 +82,7 @@
 <body class="bg-slate-50 text-slate-800 h-screen flex flex-col overflow-hidden">
 
     <!-- Hidden Input for Loading Files -->
-    <input type="file" id="file-upload" class="hidden" accept=".json" onchange="handleFileUpload(this)">
+    <input type="file" id="file-upload" class="hidden" accept=".js,.json" onchange="handleFileUpload(this)">
 
     <!-- Header -->
     <header class="bg-blue-900 text-white p-4 shadow-lg shrink-0 z-30 relative">
@@ -82,10 +92,10 @@
                 <p class="text-blue-200 text-sm">Secondary School Framework (Sector-Leading Benchmarks)</p>
             </div>
             <div class="flex space-x-3">
-                <button onclick="saveProfile()" class="px-3 py-2 bg-blue-800 hover:bg-blue-700 rounded text-sm font-medium transition border border-blue-700" title="Save as JSON file">
+                <button onclick="saveProfile()" class="px-3 py-2 bg-blue-800 hover:bg-blue-700 rounded text-sm font-medium transition border border-blue-700" title="Save as JS file">
                     <i class="fa-solid fa-download mr-2"></i>Save
                 </button>
-                <button onclick="triggerLoad()" class="px-3 py-2 bg-blue-800 hover:bg-blue-700 rounded text-sm font-medium transition border border-blue-700" title="Load JSON file">
+                <button onclick="triggerLoad()" class="px-3 py-2 bg-blue-800 hover:bg-blue-700 rounded text-sm font-medium transition border border-blue-700" title="Load JS/JSON file">
                     <i class="fa-solid fa-upload mr-2"></i>Load
                 </button>
                 <div class="w-px h-8 bg-blue-700 mx-1"></div>
@@ -373,12 +383,29 @@
         let isDashboardOpen = false;
         let chartInstance = null;
         const STORAGE_KEY = 'hgios_evaluation_v1';
+        const GLOBAL_DATA_VAR = 'HGIOS_SAVED_DATA'; // Variable name in default.js
 
         // --- Initialization ---
         document.addEventListener('DOMContentLoaded', () => {
-            loadFromLocal();
+            initData();
             loadQI(currentQI);
         });
+
+        function initData() {
+            // 1. Check for 'default.js' data (window.HGIOS_SAVED_DATA)
+            if (typeof window[GLOBAL_DATA_VAR] !== 'undefined') {
+                const defaultData = window[GLOBAL_DATA_VAR];
+                if (defaultData && defaultData.selections) {
+                    userSelections = defaultData.selections;
+                    userComments = defaultData.comments || {};
+                    console.log("Loaded configuration from default.js");
+                    return; // Stop here, default.js overrides localStorage
+                }
+            }
+
+            // 2. Fallback to LocalStorage
+            loadFromLocal();
+        }
 
         function loadFromLocal() {
             const data = localStorage.getItem(STORAGE_KEY);
@@ -563,7 +590,7 @@
             });
         }
 
-        // --- File Load/Save Logic ---
+        // --- File Load/Save Logic (JavaScript Based) ---
 
         function saveProfile() {
             const profileData = {
@@ -572,11 +599,14 @@
                 timestamp: new Date().toISOString()
             };
             
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(profileData));
+            // Create valid JS assignment string
+            const jsContent = `window.${GLOBAL_DATA_VAR} = ${JSON.stringify(profileData, null, 2)};`;
+            
+            const dataStr = "data:text/javascript;charset=utf-8," + encodeURIComponent(jsContent);
             const downloadAnchorNode = document.createElement('a');
             downloadAnchorNode.setAttribute("href", dataStr);
-            downloadAnchorNode.setAttribute("download", "hgios_profile_" + new Date().toISOString().slice(0,10) + ".json");
-            document.body.appendChild(downloadAnchorNode); // required for firefox
+            downloadAnchorNode.setAttribute("download", "hgios_data.js");
+            document.body.appendChild(downloadAnchorNode);
             downloadAnchorNode.click();
             downloadAnchorNode.remove();
         }
@@ -592,11 +622,30 @@
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
-                    const parsed = JSON.parse(e.target.result);
-                    if(parsed.selections) {
-                        userSelections = parsed.selections;
-                        userComments = parsed.comments || {};
-                        saveToLocal(); // persist imported data
+                    const content = e.target.result;
+                    let parsedData;
+
+                    // Logic: If it's a JS file, strip the variable declaration. If JSON, parse directly.
+                    if (content.trim().startsWith("window." + GLOBAL_DATA_VAR) || content.includes(" = {")) {
+                        // Naive strip of "window.VAR = " ... ";"
+                        // Finds the first '{' and last '}'
+                        const firstBrace = content.indexOf('{');
+                        const lastBrace = content.lastIndexOf('}');
+                        if (firstBrace !== -1 && lastBrace !== -1) {
+                            const jsonPart = content.substring(firstBrace, lastBrace + 1);
+                            parsedData = JSON.parse(jsonPart);
+                        } else {
+                            throw new Error("Could not extract object from JS file.");
+                        }
+                    } else {
+                        // Assume standard JSON
+                        parsedData = JSON.parse(content);
+                    }
+
+                    if(parsedData && parsedData.selections) {
+                        userSelections = parsedData.selections;
+                        userComments = parsedData.comments || {};
+                        saveToLocal();
                         loadQI(currentQI);
                         if(isDashboardOpen) renderDashboard();
                         alert("Profile loaded successfully!");
@@ -605,11 +654,10 @@
                     }
                 } catch (err) {
                     console.error(err);
-                    alert("Error reading file.");
+                    alert("Error reading file. Ensure it is a valid JSON or JS profile.");
                 }
             };
             reader.readAsText(file);
-            // Reset input so same file can be selected again if needed
             input.value = '';
         }
 
@@ -742,14 +790,14 @@
                     }]
                 },
                 options: {
-                    maintainAspectRatio: false, // Add this
+                    maintainAspectRatio: false, 
                     scales: {
                         r: {
                             angleLines: { display: true },
                             suggestedMin: 0,
                             suggestedMax: 6,
-                            ticks: { stepSize: 1, backdropColor: 'transparent' }, // Transparent backdrop looks cleaner
-                            pointLabels: { font: { size: 11 } } // Adjust font size if needed
+                            ticks: { stepSize: 1, backdropColor: 'transparent' }, 
+                            pointLabels: { font: { size: 11 } } 
                         }
                     },
                     plugins: {

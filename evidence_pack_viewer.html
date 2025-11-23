@@ -246,6 +246,7 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
             background: #fdfdfd;
             overflow: hidden; 
+            cursor: pointer; /* Indicate clickability */
         }
         .embedded-media-img {
             width: 100%;
@@ -314,6 +315,7 @@
             font-weight: 500;
             transition: all 0.2s ease;
             overflow: hidden; 
+            cursor: pointer;
         }
         .visual-card:hover {
             border-color: #005a9c;
@@ -365,6 +367,7 @@
             display: block;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             border-radius: 4px;
+            cursor: pointer;
         }
         .carousel-caption {
             margin-top: 10px;
@@ -395,6 +398,60 @@
             font-size: 0.9em;
             color: #777;
             font-weight: bold;
+        }
+
+        /* --- NEW: Image Viewer Modal (Lightbox) --- */
+        .modal {
+            display: none; 
+            position: fixed; 
+            z-index: 1000; 
+            padding-top: 50px; 
+            left: 0;
+            top: 0;
+            width: 100%; 
+            height: 100%; 
+            overflow: auto; 
+            background-color: rgb(0,0,0); 
+            background-color: rgba(0,0,0,0.9); 
+        }
+
+        .modal-content {
+            margin: auto;
+            display: block;
+            width: 80%;
+            max-width: 1000px;
+            max-height: 80vh;
+            object-fit: contain;
+            background-color: white;
+        }
+
+        .modal-caption {
+            margin: auto;
+            display: block;
+            width: 80%;
+            max-width: 700px;
+            text-align: center;
+            color: #ccc;
+            padding: 10px 0;
+            height: 150px;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 35px;
+            color: #f1f1f1;
+            font-size: 40px;
+            font-weight: bold;
+            transition: 0.3s;
+            cursor: pointer;
+        }
+
+        .close-modal:hover,
+        .close-modal:focus {
+            color: #bbb;
+            text-decoration: none;
+            cursor: pointer;
         }
 
 
@@ -471,7 +528,7 @@
                 margin: 0;
                 max-width: 100%;
             }
-            .print-button, .header-container, #error-banner, .view-mode-controls {
+            .print-button, .header-container, #error-banner, .view-mode-controls, .modal {
                 display: none;
             }
             .embedded-media-iframe {
@@ -568,7 +625,9 @@
         <section id="what">
             <h2>What: Our Practice & Evidence</h2>
             <div id="what-text" class="text-content"></div> 
-            <h3>Participation Summary</h3>
+            
+            <!-- Updated heading ID for JS control -->
+            <h3 id="participation-heading">Participation Summary</h3>
             <div class="quant-grid" id="participation-grid"></div>
         </section>
 
@@ -576,9 +635,13 @@
         <section id="so-what">
             <h2>So What: The Impact & Outcomes</h2>
             <div id="so-what-text" class="text-content"></div>
-            <h3>Quantitative Summary (Impact)</h3>
+            
+            <!-- UPDATED: Added ID for JS control -->
+            <h3 id="impact-heading">Quantitative Summary (Impact)</h3>
             <div class="quant-grid" id="impact-grid"></div>
-            <h3>Qualitative Summary</h3>
+            
+            <!-- UPDATED: Added ID for JS control -->
+            <h3 id="qualitative-heading">Qualitative Summary</h3>
             <div class="qual-container" id="qualitative-bubbles"></div>
         </section>
 
@@ -612,6 +675,13 @@
         </section>
 
         <button class="print-button" onclick="window.print()">Print / Save as PDF</button>
+    </div>
+
+    <!-- IMAGE MODAL -->
+    <div id="image-modal" class="modal">
+        <span class="close-modal" onclick="closeModal()">&times;</span>
+        <img class="modal-content" id="modal-image">
+        <div class="modal-caption" id="modal-caption"></div>
     </div>
 
     <!-- JAVASCRIPT LOGIC -->
@@ -661,15 +731,20 @@
             return { html: markdownHtml, usedImages };
         }
         
+        // UPDATED: buildImageEmbed with onclick handler for modal
         function buildImageEmbed(item) {
             const placeholderText = 'Please log in to%0ASharePoint%0Ato view image';
             const placeholderUrl = `https://placehold.co/600x400/f4f8fb/777?text=${placeholderText}`;
             const onErrorScript = `this.src='${placeholderUrl}'; this.onerror=null;`;
             let caption = item.EvidenceDescription ? item.EvidenceDescription : item.Name;
             const captionHtml = marked.parse(caption, { breaks: true });
+            
+            // Escape single quotes for the onclick handler
+            const safeUrl = item.Link.replace(/'/g, "\\'");
+            const safeCaption = captionHtml.replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
             return `
-                <div class="embedded-media-container">
+                <div class="embedded-media-container" onclick="openModal('${safeUrl}', '${safeCaption}')">
                     <img src="${item.Link}" alt="${item.Name}" class="embedded-media-img" onerror="${onErrorScript}">
                     <div class="embedded-media-caption">${captionHtml}</div>
                 </div>
@@ -687,23 +762,42 @@
         function buildHtmlList(items, itemType, allFiles) {
             let html = "";
             const usedImages = new Set();
+            // Check if items exist and are not just empty strings
             if (!items || items.length === 0) return { html: "", usedImages }; 
+            
+            let hasContent = false;
 
             switch (itemType) {
                 case 'quant-box':
-                    items.forEach(item => { if(item) html += `<div class="quant-box">${item}</div>`; });
+                    items.forEach(item => { 
+                        if(item && item.trim() !== "") {
+                            html += `<div class="quant-box">${item}</div>`;
+                            hasContent = true;
+                        }
+                    });
                     break;
                 case 'impact-box': 
-                     items.forEach(item => { if(item) html += `<div class="quant-box impact-box">${item}</div>`; });
+                     items.forEach(item => { 
+                        if(item && item.trim() !== "") {
+                            html += `<div class="quant-box impact-box">${item}</div>`; 
+                            hasContent = true;
+                        }
+                    });
                     break;
                 case 'speech-bubble':
                     items.forEach(item => {
-                        const result = formatMarkdown(item, allFiles);
-                        if(item) html += `<div class="speech-bubble">${result.html}</div>`; 
-                        result.usedImages.forEach(img => usedImages.add(img));
+                        if(item && item.trim() !== "") {
+                            const result = formatMarkdown(item, allFiles);
+                            html += `<div class="speech-bubble">${result.html}</div>`; 
+                            result.usedImages.forEach(img => usedImages.add(img));
+                            hasContent = true;
+                        }
                     });
                     break;
             }
+            
+            if (!hasContent) html = "";
+            
             return { html, usedImages };
         }
         
@@ -733,7 +827,7 @@
             if (!tableBody) return;
 
             const matchingFiles = allFiles.filter(file => 
-                file["Evidence Pack Name"] === packTitle &&
+            (file["Evidence Pack Name"] || "").split(/[;,]\s*/).includes(packTitle) &&
                 (!file.ItemType || file.ItemType.toLowerCase() !== 'folder') &&
                 (file.QIs && file.QIs.trim() !== '') 
             );
@@ -773,7 +867,7 @@
             tableBody.innerHTML = tableHtml;
         }
         
-        // --- NEW: Visual Evidence Logic (Grid + Carousel) ---
+        // --- Visual Evidence Logic (Grid + Carousel) ---
         function populateVisualEvidence(packTitle, allFiles, usedImages) {
             const gridContainer = document.getElementById('visual-evidence-grid');
             const carouselContainer = document.getElementById('carousel-slides-container');
@@ -786,7 +880,7 @@
                 const nameLower = file.Name.toLowerCase();
                 const isImage = imageExtensions.some(ext => nameLower.endsWith(ext));
                 const isUsed = usedImages.has(file.Name);
-                return file["Evidence Pack Name"] === packTitle && isImage &&
+                return (file["Evidence Pack Name"] || "").split(/[;,]\s*/).includes(packTitle) && isImage &&
                        (!file.ItemType || file.ItemType.toLowerCase() !== 'folder') &&
                        !isUsed;
             });
@@ -807,21 +901,25 @@
             const onErrorScript = `this.src='${placeholderUrl}'; this.onerror=null;`;
 
             matchingImages.forEach((item, idx) => {
-                // Grid Item
+                // Escape strings for onclick
+                const safeUrl = item.Link.replace(/'/g, "\\'");
+                const safeName = item.Name.replace(/'/g, "\\'");
+
+                // Grid Item (Updated to use onclick for modal)
                 gridHtml += `
-                    <a href="${item.Link}" target="_blank" class="visual-card">
+                    <div class="visual-card" onclick="openModal('${safeUrl}', '${safeName}')">
                         <img src="${item.Link}" alt="${item.Name}" class="visual-card-img" onerror="${onErrorScript}">
                         <span class="visual-card-title">${item.Name}</span>
-                    </a>
+                    </div>
                 `;
                 
-                // Carousel Item
+                // Carousel Item (Updated to use onclick for modal)
                 const activeClass = (idx === 0) ? 'active' : '';
                 carouselHtml += `
                     <div class="carousel-slide ${activeClass}" data-index="${idx}">
-                        <a href="${item.Link}" target="_blank">
+                        <div onclick="openModal('${safeUrl}', '${safeName}')">
                             <img src="${item.Link}" alt="${item.Name}" class="carousel-img" onerror="${onErrorScript}">
-                        </a>
+                        </div>
                         <div class="carousel-caption">${item.Name}</div>
                     </div>
                 `;
@@ -831,6 +929,36 @@
             carouselContainer.innerHTML = carouselHtml;
             updateCarouselUI();
         }
+
+        // --- MODAL FUNCTIONS ---
+        function openModal(url, caption) {
+            const modal = document.getElementById('image-modal');
+            const modalImg = document.getElementById('modal-image');
+            const modalCaption = document.getElementById('modal-caption');
+            
+            modal.style.display = "block";
+            modalImg.src = url;
+            
+            // Apply error handling to modal image too
+            const placeholderText = 'Please log in to%0ASharePoint%0Ato view image';
+            const placeholderUrl = `https://placehold.co/800x600/f4f8fb/777?text=${placeholderText}`;
+            modalImg.onerror = function() { this.src = placeholderUrl; this.onerror = null; };
+            
+            modalCaption.innerHTML = caption;
+        }
+
+        function closeModal() {
+            document.getElementById('image-modal').style.display = "none";
+        }
+        
+        // Close modal if clicking outside image
+        window.onclick = function(event) {
+            const modal = document.getElementById('image-modal');
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+
 
         // --- UI INTERACTION FUNCTIONS ---
 
@@ -887,7 +1015,6 @@
             if (packs.length > 0) {
                  packData = packs.find(p => p.id === index) || packs[0];
             } else {
-                // Fallback/Placeholder logic... (omitted for brevity, same as before)
                 const banner = document.getElementById('error-banner');
                 if (banner) { banner.style.display = 'block'; banner.textContent = "No Data Found."; }
                 return;
@@ -911,16 +1038,52 @@
                 const whatRes = formatAndSetText('what-text', packData.what_text, files);
                 whatRes.forEach(i => allUsedImages.add(i));
                 
-                document.getElementById('participation-grid').innerHTML = buildHtmlList(packData.participation_summary, 'quant-box', files).html;
-                
+                // --- PARTICIPATION SUMMARY LOGIC ---
+                const partResult = buildHtmlList(packData.participation_summary, 'quant-box', files);
+                const partGrid = document.getElementById('participation-grid');
+                const partHead = document.getElementById('participation-heading');
+
+                if (!partResult.html || partResult.html.trim() === "") {
+                    partGrid.style.display = 'none';
+                    if (partHead) partHead.style.display = 'none';
+                } else {
+                    partGrid.innerHTML = partResult.html;
+                    partGrid.style.display = 'grid';
+                    if (partHead) partHead.style.display = 'block';
+                }
+
                 const soWhatRes = formatAndSetText('so-what-text', packData.so_what_text, files);
                 soWhatRes.forEach(i => allUsedImages.add(i));
                 
-                document.getElementById('impact-grid').innerHTML = buildHtmlList(packData.impact_summary, 'impact-box').html;
+                // --- UPDATED: IMPACT SUMMARY LOGIC ---
+                const impResult = buildHtmlList(packData.impact_summary, 'impact-box');
+                const impGrid = document.getElementById('impact-grid');
+                const impHead = document.getElementById('impact-heading');
+
+                if (!impResult.html || impResult.html.trim() === "") {
+                    impGrid.style.display = 'none';
+                    if (impHead) impHead.style.display = 'none';
+                } else {
+                    impGrid.innerHTML = impResult.html;
+                    impGrid.style.display = 'grid';
+                    if (impHead) impHead.style.display = 'block';
+                }
                 
-                const qualRes = buildHtmlList(packData.qualitative_summary, 'speech-bubble', files);
-                document.getElementById('qualitative-bubbles').innerHTML = qualRes.html;
-                qualRes.usedImages.forEach(i => allUsedImages.add(i));
+                // --- UPDATED: QUALITATIVE SUMMARY LOGIC ---
+                const qualResult = buildHtmlList(packData.qualitative_summary, 'speech-bubble', files);
+                const qualContainer = document.getElementById('qualitative-bubbles');
+                const qualHead = document.getElementById('qualitative-heading');
+                
+                if (!qualResult.html || qualResult.html.trim() === "") {
+                    qualContainer.style.display = 'none';
+                    if (qualHead) qualHead.style.display = 'none';
+                } else {
+                    qualContainer.innerHTML = qualResult.html;
+                    qualContainer.style.display = 'block';
+                    if (qualHead) qualHead.style.display = 'block';
+                }
+                
+                qualResult.usedImages.forEach(i => allUsedImages.add(i));
 
                 const whatNowRes = formatAndSetText('what-now-text', packData.what_now_steps, files);
                 whatNowRes.forEach(i => allUsedImages.add(i));

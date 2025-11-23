@@ -9,13 +9,13 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     
     <!-- 
-      EVIDENCE PACK LOADER:
-      1. Tries to load from 'tools/evidencepackdata.js' (Primary)
-      2. If that fails, the code below creates a fallback/mock set or handles the error gracefully.
-      
-      NOTE: 'default.js' auto-loading has been removed to prevent 404 errors. 
-      Please use the "Load" button to restore saved profiles.
+      AUTO-LOAD MECHANISMS:
+      1. default.js: Loads saved profile/ratings.
+         - Create this file by Saving a profile and renaming it to 'default.js'
+         - Place it in the same folder as this HTML file.
+      2. tools/evidencepackdata.js: Loads evidence packs.
     -->
+    <script src="default.js" onerror="console.log('default.js not found. Starting with empty/local profile.')"></script>
     <script src="tools/evidencepackdata.js" onerror="console.warn('tools/evidencepackdata.js not found. Use Load button to import manually.')"></script>
 
     <style>

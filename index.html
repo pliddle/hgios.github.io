@@ -9,12 +9,12 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     
     <!-- 
-      AUTO-LOAD MECHANISMS:
-      1. default.js: Loads saved profile/ratings.
-      2. evidencepackdata.js: Loads the array of evidence packs from your file.
+      AUTO-LOAD ATTEMPT:
+      Attempts to load 'tools/evidencepackdata.js'.
+      If running locally (file://), this may fail due to CORS policies.
+      Use the "Load" button to manually import the file if that happens.
     -->
-    <script src="default.js"></script>
-    <script src="evidencepackdata.js"></script>
+    <script src="tools/evidencepackdata.js" onerror="console.log('Auto-load from tools/ failed (likely CORS). Use Load button.')"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
@@ -101,10 +101,10 @@
                 <p class="text-blue-200 text-sm">Secondary School Framework (Sector-Leading Benchmarks)</p>
             </div>
             <div class="flex space-x-3">
-                <button onclick="saveProfile()" class="px-3 py-2 bg-blue-800 hover:bg-blue-700 rounded text-sm font-medium transition border border-blue-700" title="Save as JS file">
+                <button onclick="saveProfile()" class="px-3 py-2 bg-blue-800 hover:bg-blue-700 rounded text-sm font-medium transition border border-blue-700" title="Save Profile">
                     <i class="fa-solid fa-download mr-2"></i>Save
                 </button>
-                <button onclick="triggerLoad()" class="px-3 py-2 bg-blue-800 hover:bg-blue-700 rounded text-sm font-medium transition border border-blue-700" title="Load JS/JSON file">
+                <button onclick="triggerLoad()" class="px-3 py-2 bg-blue-800 hover:bg-blue-700 rounded text-sm font-medium transition border border-blue-700" title="Load Profile OR Evidence Data">
                     <i class="fa-solid fa-upload mr-2"></i>Load
                 </button>
                 <div class="w-px h-8 bg-blue-700 mx-1"></div>

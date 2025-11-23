@@ -9,13 +9,15 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     
     <!-- 
-      AUTO-LOAD MECHANISM:
-      The tool attempts to load 'default.js' from the same directory.
-      If found, it sets window.HGIOS_SAVED_DATA.
-      If not found, this script tag fails silently (check console for 404), 
-      and the app falls back to localStorage.
+      AUTO-LOAD MECHANISMS:
+      1. default.js: Loads saved profile/ratings.
+      2. evidencepackdata.js: Loads the array of evidence packs.
+         This expects a file that defines 'const evidencePacks = [...]'
+         Note: If using local file:// protocol, ensure your browser allows local file access 
+         or serve this folder via a simple local server (e.g. python -m http.server).
     -->
     <script src="default.js"></script>
+    <script src="evidencepackdata.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
@@ -42,12 +44,16 @@
         .bg-level-6 { background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%); border-color: #a855f7; color: #6b21a8; }
         .bg-level-0 { background: #f8fafc; border-color: #e2e8f0; color: #64748b; }
 
+        /* Evidence Tag Styles */
+        .evidence-tag { transition: all 0.2s; }
+        .evidence-tag:hover { background-color: #dbeafe; }
+
         /* --- PRINT STYLES --- */
         @media print {
             @page { size: landscape; margin: 0.5cm; }
             
             /* Hide UI elements */
-            header, aside, #toggle-btn, .qi-btn, button { display: none !important; }
+            header, aside, #toggle-btn, .qi-btn, button, .evidence-selector-dropdown { display: none !important; }
             
             /* Reset Layout Constraints */
             body, html, #edit-view, #rubric-container, #dashboard-view {
@@ -172,11 +178,9 @@
         </main>
     </div>
 
-    <!-- DASHBOARD OVERLAY (Full Screen Visualisation) -->
+    <!-- DASHBOARD OVERLAY -->
     <div id="dashboard-view" class="hidden fixed inset-0 bg-slate-100 z-20 flex flex-col overflow-y-auto pt-10 pb-10 px-8">
-        
         <div class="max-w-7xl mx-auto w-full">
-            
             <!-- Dash Header -->
             <div class="flex justify-between items-end mb-8">
                 <div>
@@ -203,54 +207,39 @@
                 </div>
             </div>
 
-            <!-- 1. Heatmap Cards Grid -->
-            <div id="dashboard-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                <!-- Cards injected via JS -->
-            </div>
+            <!-- Grid -->
+            <div id="dashboard-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8"></div>
 
-            <!-- 2. Detailed Charts Row -->
+            <!-- Charts -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                
-                <!-- Radar Chart (QI Profile) -->
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 col-span-1 lg:col-span-2">
                     <h3 class="text-lg font-bold text-slate-800 mb-4">QI Profile (Overall)</h3>
-                    <div class="h-64 w-full flex justify-center relative">
-                        <canvas id="radarChart"></canvas>
-                    </div>
+                    <div class="h-64 w-full flex justify-center relative"><canvas id="radarChart"></canvas></div>
                 </div>
-
-                <!-- Doughnut Chart (Confidence) -->
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 col-span-1">
                     <h3 class="text-lg font-bold text-slate-800 mb-4">Evidence Confidence</h3>
-                    <div class="h-64 w-full flex justify-center relative">
-                        <canvas id="confidenceChart"></canvas>
-                    </div>
-                    <p class="text-center text-xs text-slate-400 mt-2">Secure (Green) vs Partial (Orange) judgments</p>
+                    <div class="h-64 w-full flex justify-center relative"><canvas id="confidenceChart"></canvas></div>
                 </div>
             </div>
 
-            <!-- 3. Theme Breakdown (Bar Chart) -->
+            <!-- Theme Bar -->
             <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8 print:break-before-auto">
                 <h3 class="text-lg font-bold text-slate-800 mb-4">Detailed Theme Performance</h3>
-                <div class="h-80 w-full">
-                    <canvas id="themeBarChart"></canvas>
-                </div>
+                <div class="h-80 w-full"><canvas id="themeBarChart"></canvas></div>
             </div>
 
-            <!-- 4. Key Strengths List -->
+            <!-- Strengths -->
             <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 print:break-inside-avoid">
                 <h3 class="text-lg font-bold text-slate-800 mb-4">Sector-Leading Strengths Identified</h3>
                 <ul id="strengths-list" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-slate-600">
                     <li class="text-slate-400 italic">Complete the rubric to see strengths...</li>
                 </ul>
             </div>
-
         </div>
     </div>
 
     <script>
         // --- Data Structure ---
-        // (This rubricData object is populated below - kept same as before)
         const rubricData = {
             "1.3": {
                 title: "1.3 Leadership of Change",
@@ -403,7 +392,7 @@
         // --- State Management ---
         let currentQI = '2.3';
         let userSelections = {}; 
-        let userComments = {}; 
+        let userEvidenceLinks = {}; 
         let isDashboardOpen = false;
         let chartInstances = {};
         const STORAGE_KEY = 'hgios_evaluation_v1';
@@ -412,7 +401,33 @@
         // --- Initialization ---
         document.addEventListener('DOMContentLoaded', () => {
             initData();
-            loadQI(currentQI);
+            
+            // Delay looking for window.evidencePacks to allow external script to run
+            setTimeout(() => {
+                if (typeof window.evidencePacks !== 'undefined' && Array.isArray(window.evidencePacks)) {
+                    window.EVIDENCE_PACKS = window.evidencePacks;
+                } else if (typeof window.EVIDENCE_PACKS === 'undefined' && typeof window.evidence_packs !== 'undefined') {
+                    // Try alternate variable name
+                    window.EVIDENCE_PACKS = window.evidence_packs;
+                } else if (typeof window.EVIDENCE_PACKS === 'undefined') {
+                    // Fallback if file didn't load or variable name differs
+                    console.warn("Evidence packs file not loaded or variable name mismatch. Using fallback.");
+                    window.EVIDENCE_PACKS = [
+                        "S1-S3 Tracking Data (Nov 2024)",
+                        "Senior Phase Insight Analysis",
+                        "Pupil Focus Groups: Wellbeing",
+                        "Staff Survey Results 2025",
+                        "Lesson Observation Records",
+                        "Department Minutes (Maths)",
+                        "Parent Council Feedback",
+                        "Attendance Statistics",
+                        "Destinations Report 23/24",
+                        "Quality Assurance Calendar"
+                    ];
+                }
+                
+                loadQI(currentQI);
+            }, 500); // Small delay to ensure external script loads
         });
 
         function initData() {
@@ -420,7 +435,7 @@
                 const defaultData = window[GLOBAL_DATA_VAR];
                 if (defaultData && defaultData.selections) {
                     userSelections = defaultData.selections;
-                    userComments = defaultData.comments || {};
+                    userEvidenceLinks = defaultData.evidence || defaultData.comments || {}; 
                     return;
                 }
             }
@@ -433,7 +448,7 @@
                 try {
                     const parsed = JSON.parse(data);
                     userSelections = parsed.selections || {};
-                    userComments = parsed.comments || {};
+                    userEvidenceLinks = parsed.evidence || parsed.comments || {}; 
                 } catch (e) {
                     console.error("Error loading data", e);
                 }
@@ -443,7 +458,7 @@
         function saveToLocal() {
             localStorage.setItem(STORAGE_KEY, JSON.stringify({ 
                 selections: userSelections, 
-                comments: userComments 
+                evidence: userEvidenceLinks 
             }));
         }
 
@@ -518,19 +533,47 @@
 
                     const evidBtn = document.createElement('button');
                     evidBtn.className = "col-span-1 flex flex-col items-center justify-center text-slate-400 hover:text-blue-600 transition";
-                    const hasComment = userComments[row.id] && userComments[row.id].trim().length > 0;
-                    evidBtn.innerHTML = `<i class="fa-regular fa-comment-dots text-xl ${hasComment ? 'text-blue-600' : ''}"></i>`;
-                    evidBtn.onclick = () => toggleComment(row.id);
+                    
+                    // Check if we have evidence array
+                    const hasEvidence = userEvidenceLinks[row.id] && Array.isArray(userEvidenceLinks[row.id]) && userEvidenceLinks[row.id].length > 0;
+                    
+                    evidBtn.innerHTML = `<i class="fa-solid fa-folder-open text-xl ${hasEvidence ? 'text-blue-600' : ''}"></i>`;
+                    evidBtn.onclick = () => toggleEvidenceWidget(row.id);
                     rowEl.appendChild(evidBtn);
 
-                    const commentBox = document.createElement('div');
-                    commentBox.id = `comment-${row.id}`;
-                    commentBox.className = `col-span-12 mt-2 ${hasComment ? '' : 'hidden'}`;
-                    commentBox.innerHTML = `
-                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Evidence / Context:</label>
-                        <textarea oninput="saveComment('${row.id}', this.value)" class="w-full p-2 text-sm border rounded bg-yellow-50 text-slate-700 focus:ring-2 focus:ring-blue-200 outline-none" rows="2" placeholder="e.g. Evidenced by S3 focus group, May 2025...">${userComments[row.id] || ''}</textarea>
+                    // Evidence Selector Container (Hidden by default)
+                    const evidenceContainer = document.createElement('div');
+                    evidenceContainer.id = `evidence-${row.id}`;
+                    evidenceContainer.className = `col-span-12 mt-2 p-3 bg-slate-50 border rounded-lg ${hasEvidence ? '' : 'hidden'} evidence-selector-dropdown`;
+                    
+                    // Dropdown
+                    let optionsHtml = `<option disabled selected>+ Add Evidence Pack...</option>`;
+                    if (window.EVIDENCE_PACKS) {
+                        window.EVIDENCE_PACKS.forEach((pack, idx) => {
+                            optionsHtml += `<option value="${idx}">${pack}</option>`;
+                        });
+                    }
+
+                    evidenceContainer.innerHTML = `
+                        <div class="flex flex-col gap-2">
+                            <div class="flex items-center gap-2 mb-2">
+                                <label class="text-xs font-bold text-slate-400 uppercase">Linked Evidence:</label>
+                                <select onchange="addEvidence('${row.id}', this.value); this.value='';" class="text-sm border rounded p-1 bg-white w-full">
+                                    ${optionsHtml}
+                                </select>
+                            </div>
+                            <div id="tags-${row.id}" class="flex flex-wrap gap-2">
+                                <!-- Tags injected via JS -->
+                            </div>
+                        </div>
                     `;
-                    rowEl.appendChild(commentBox);
+                    
+                    rowEl.appendChild(evidenceContainer);
+                    // Populate tags immediately if they exist
+                    if (hasEvidence) {
+                        // This timeout ensures the DOM element is ready
+                        setTimeout(() => renderEvidenceTags(row.id), 0);
+                    }
 
                     table.appendChild(rowEl);
                 });
@@ -567,17 +610,68 @@
             updateStats();
         }
 
-        function toggleComment(rowId) {
-            const box = document.getElementById(`comment-${rowId}`);
+        // --- Evidence Widget Logic ---
+
+        function toggleEvidenceWidget(rowId) {
+            const box = document.getElementById(`evidence-${rowId}`);
             box.classList.toggle('hidden');
+            // If opening, ensure tags are rendered
             if (!box.classList.contains('hidden')) {
-                box.querySelector('textarea').focus();
+                renderEvidenceTags(rowId);
             }
         }
 
-        function saveComment(rowId, text) {
-            userComments[rowId] = text;
+        function addEvidence(rowId, packIndexStr) {
+            const packIndex = parseInt(packIndexStr);
+            if (isNaN(packIndex)) return;
+
+            if (!userEvidenceLinks[rowId]) {
+                userEvidenceLinks[rowId] = [];
+            }
+            
+            // Avoid duplicates
+            if (!userEvidenceLinks[rowId].includes(packIndex)) {
+                userEvidenceLinks[rowId].push(packIndex);
+                saveToLocal();
+                renderEvidenceTags(rowId);
+                
+                // Update icon color immediately
+                const btnIcon = document.querySelector(`#evidence-${rowId}`).previousSibling.querySelector('i');
+                if(btnIcon) btnIcon.classList.add('text-blue-600');
+            }
+        }
+
+        function removeEvidence(rowId, packIndex) {
+            if (!userEvidenceLinks[rowId]) return;
+            
+            userEvidenceLinks[rowId] = userEvidenceLinks[rowId].filter(idx => idx !== packIndex);
             saveToLocal();
+            renderEvidenceTags(rowId);
+
+            // If empty, maybe uncolor icon?
+            if (userEvidenceLinks[rowId].length === 0) {
+                const btnIcon = document.querySelector(`#evidence-${rowId}`).previousSibling.querySelector('i');
+                if(btnIcon) btnIcon.classList.remove('text-blue-600');
+            }
+        }
+
+        function renderEvidenceTags(rowId) {
+            const container = document.getElementById(`tags-${rowId}`);
+            if (!container) return;
+            
+            container.innerHTML = '';
+            const indices = userEvidenceLinks[rowId] || [];
+
+            indices.forEach(idx => {
+                const packName = (window.EVIDENCE_PACKS && window.EVIDENCE_PACKS[idx]) || "Unknown Pack";
+                const tag = document.createElement('span');
+                tag.className = "evidence-tag inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200";
+                tag.innerHTML = `
+                    <a href="evidence_pack_viewer.html?index=${idx}" target="_blank" class="hover:underline font-semibold" title="Open Evidence Pack">${packName}</a>
+                    <button onclick="removeEvidence('${rowId}', ${idx})" class="ml-2 text-blue-400 hover:text-red-600 font-bold">×</button>
+                `;
+                container.appendChild(tag);
+            });
         }
 
         function updateStats() {
@@ -611,7 +705,7 @@
         function saveProfile() {
             const profileData = {
                 selections: userSelections,
-                comments: userComments,
+                evidence: userEvidenceLinks, // Save the array of indices
                 timestamp: new Date().toISOString()
             };
             const jsContent = `window.${GLOBAL_DATA_VAR} = ${JSON.stringify(profileData, null, 2)};`;
@@ -647,7 +741,7 @@
                     }
                     if(parsedData && parsedData.selections) {
                         userSelections = parsedData.selections;
-                        userComments = parsedData.comments || {};
+                        userEvidenceLinks = parsedData.evidence || parsedData.comments || {};
                         saveToLocal();
                         loadQI(currentQI);
                         if(isDashboardOpen) renderDashboard();
@@ -687,18 +781,14 @@
             const strengthList = document.getElementById('strengths-list');
             strengthList.innerHTML = '';
 
-            // 1. Prepare Data Containers
             let radarLabels = [];
             let radarData = [];
-            
             let secureCount = 0;
             let partialCount = 0;
-
             let themeLabels = [];
             let themeData = [];
             let themeColors = [];
 
-            // 2. Loop through all QIs
             Object.keys(rubricData).forEach(qiKey => {
                 const qi = rubricData[qiKey];
                 const allRows = qi.themes.flatMap(t => t.rows);
@@ -707,7 +797,6 @@
                 let weightedSum = 0;
                 let countEvaluated = 0;
                 
-                // 2a. Sub-loop for Themes (for Bar Chart)
                 qi.themes.forEach(theme => {
                     let themeSum = 0;
                     let themeCount = 0;
@@ -718,11 +807,9 @@
                             themeSum += (sel.level * weight);
                             themeCount += weight;
                             
-                            // Global counts for Confidence Chart
                             if(sel.status === 'secure') secureCount++;
                             else partialCount++;
 
-                            // Highlight strengths
                             if(sel.level === 6 && sel.status === 'secure') {
                                 const li = document.createElement('li');
                                 li.innerHTML = `<i class="fa-solid fa-check-circle text-purple-600 mr-2"></i> <span class="font-bold text-slate-700">${qiKey}:</span> ${r.focus}`;
@@ -731,7 +818,6 @@
                         }
                     });
                     
-                    // Theme Bar Chart Data
                     if(themeCount > 0) {
                         themeLabels.push(`${qiKey} ${theme.name.substring(0, 20)}...`);
                         const themeAvg = themeSum/themeCount;
@@ -740,7 +826,6 @@
                     }
                 });
 
-                // 2b. Aggregate QI Score (for Radar & Cards)
                 allRows.forEach(r => {
                     const sel = userSelections[r.id];
                     if(sel) {
@@ -752,7 +837,6 @@
 
                 const average = countEvaluated > 0 ? (weightedSum / countEvaluated) : 0;
                 
-                // Card Logic
                 let cardClass = "bg-level-0";
                 let statusLabel = "Not Started";
                 let scoreLabel = "0";
@@ -802,13 +886,10 @@
 
             if(strengthList.innerHTML === '') strengthList.innerHTML = '<li class="text-slate-400 italic">No secure "Excellent" ratings recorded yet.</li>';
 
-            // 3. Render All Charts
             renderRadar(radarLabels, radarData);
             renderConfidence(secureCount, partialCount);
             renderThemeBar(themeLabels, themeData, themeColors);
         }
-
-        // --- Chart Rendering Functions ---
 
         function renderRadar(labels, data) {
             const ctx = document.getElementById('radarChart').getContext('2d');
@@ -847,9 +928,8 @@
             const ctx = document.getElementById('confidenceChart').getContext('2d');
             if(chartInstances.confidence) chartInstances.confidence.destroy();
 
-            // Handle empty state
             if(secure === 0 && partial === 0) {
-                secure = 0; partial = 1; // dummy for display
+                secure = 0; partial = 1; 
             }
 
             chartInstances.confidence = new Chart(ctx, {
@@ -902,7 +982,7 @@
         function resetAll() {
             if(confirm("Reset all selections and comments?")) {
                 userSelections = {};
-                userComments = {};
+                userEvidenceLinks = {};
                 localStorage.removeItem(STORAGE_KEY);
                 loadQI(currentQI);
                 if(isDashboardOpen) renderDashboard();
